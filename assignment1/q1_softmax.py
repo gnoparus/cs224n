@@ -31,13 +31,13 @@ def softmax(x):
     if len(x.shape) > 1:
         # Matrix
         ### YOUR CODE HERE
-        print('x = ', x)
+#         print('x = ', x)
         maxx = x.max(axis=1, keepdims=True)
-        print('maxx = ', maxx)
+#         print('maxx = ', maxx)
         x -= maxx
-        print('x = ', x)
-        x = np.exp(x) / np.sum(np.exp(x), axis=1)
-        print('x = ', x)
+#         print('x = ', x)
+        x = np.exp(x) / np.sum(np.exp(x), axis=1, keepdims=True)
+#         print('x = ', x)
         ### END YOUR CODE
     else:
         # Vector
