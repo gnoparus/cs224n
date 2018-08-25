@@ -37,21 +37,30 @@ def gradcheck_naive(f, x):
         # to test cost functions with built in randomness later.
 
         ### YOUR CODE HERE:
-        raise NotImplementedError
+        
+        params = x.copy()
+        params[ix] -= h
+        fxminus, gradminus = f(params)
+        params = x.copy()
+        params[ix] += h
+        fxplus, gradplus = f(params)
+        
+        numgrad = (fxplus - fxminus) / (2 * h)              
+        
         ### END YOUR CODE
 
         # Compare gradients
         reldiff = abs(numgrad - grad[ix]) / max(1, abs(numgrad), abs(grad[ix]))
         if reldiff > 1e-5:
-            print "Gradient check failed."
-            print "First gradient error found at index %s" % str(ix)
-            print "Your gradient: %f \t Numerical gradient: %f" % (
-                grad[ix], numgrad)
-            return
+            print ("Gradient check failed.")
+            print ("First gradient error found at index %s" % str(ix))
+            print ("Your gradient: %f \t Numerical gradient: %f" % (
+                grad[ix], numgrad))
+#             return
 
         it.iternext() # Step to next dimension
 
-    print "Gradient check passed!"
+    print ("Gradient check passed!")
 
 
 def sanity_check():
@@ -60,11 +69,11 @@ def sanity_check():
     """
     quad = lambda x: (np.sum(x ** 2), x * 2)
 
-    print "Running sanity checks..."
+    print ("Running sanity checks...")
     gradcheck_naive(quad, np.array(123.456))      # scalar test
     gradcheck_naive(quad, np.random.randn(3,))    # 1-D test
     gradcheck_naive(quad, np.random.randn(4,5))   # 2-D test
-    print ""
+    print ("")
 
 
 def your_sanity_checks():
@@ -74,9 +83,12 @@ def your_sanity_checks():
     This function will not be called by the autograder, nor will
     your additional tests be graded.
     """
-    print "Running your sanity checks..."
+    print ("Running your sanity checks...")
     ### YOUR CODE HERE
-    raise NotImplementedError
+    fx = lambda x: (np.sum(x ** 3), x ** 2 * 3)
+    gradcheck_naive(fx, np.array(1.456))      # scalar test
+    gradcheck_naive(fx, np.random.randn(5,))    # 1-D test
+    gradcheck_naive(fx, np.random.randn(6,8))   # 2-D test
     ### END YOUR CODE
 
 
