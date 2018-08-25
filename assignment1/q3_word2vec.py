@@ -15,7 +15,11 @@ def normalizeRows(x):
     """
 
     ### YOUR CODE HERE
-    raise NotImplementedError
+    
+    norm = np.linalg.norm(x, axis=1, keepdims=True)
+#     print('norm = ', norm)
+    x = x / norm
+        
     ### END YOUR CODE
 
     return x
