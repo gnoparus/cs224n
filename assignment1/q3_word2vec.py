@@ -64,31 +64,31 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     ### YOUR CODE HERE
     
     
-    print('predicted = ', predicted)
-    print('target = ', target)
-    print('outputVectors = ', outputVectors)
+#     print('predicted = ', predicted) # column vectors, shape = D * V, all v at the same time not just v_c
+#     print('target = ', target)
+#     print('outputVectors = ', outputVectors) # row vectors, shape = V * D
 
-    print('predicted.shape = ', predicted.shape)
-    print('target.shape = ', target.shape)
-    print('outputVectors.shape = ', outputVectors.shape)    
+#     print('predicted.shape = ', predicted.shape)
+#     print('target.shape = ', target.shape)
+#     print('outputVectors.shape = ', outputVectors.shape)    
     
     M = predicted.shape[0]
     cost = 0    
     gradPred = np.ones_like(predicted)    
     grad = np.ones_like(outputVectors)
 
-    v = predicted # D * V
-    u = outputVectors # V * D
-    z = u.dot(v) # V * V
+    v = predicted
+    u = outputVectors
+    z = u.dot(v) # shape = V * V
     
     yhat = softmax(z)
     
-    cost = -np.log(yhat[target])
+    cost -= np.log(yhat[target])
     
-    dz = z.copy()
-    dz = dz[target] - 1
+    dz = yhat.copy()
+    dz[target] -= 1
     
-    grad = dz.dot(v.T)
+    grad = np.outer(dz, v)
     gradPred = u.T.dot(dz)      
     
     ### END YOUR CODE
@@ -100,7 +100,7 @@ def getNegativeSamples(target, dataset, K):
     """ Samples K indexes which are not the target """
 
     indices = [None] * K
-    for k in xrange(K):
+    for k in np.arange(K):
         newidx = dataset.sampleTokenIdx()
         while newidx == target:
             newidx = dataset.sampleTokenIdx()
@@ -128,7 +128,39 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     indices.extend(getNegativeSamples(target, dataset, K))
 
     ### YOUR CODE HERE
-    raise NotImplementedError
+    
+#     print('predicted = ', predicted) # column vectors, shape = D * V, all v at the same time not just v_c
+#     print('target = ', target)
+#     print('outputVectors = ', outputVectors) # row vectors, shape = V * D
+
+#     print('predicted.shape = ', predicted.shape)
+#     print('target.shape = ', target.shape)
+#     print('outputVectors.shape = ', outputVectors.shape)    
+    
+    M = predicted.shape[0]
+    cost = 0    
+    gradPred = np.ones_like(predicted)    
+    grad = np.ones_like(outputVectors)
+    
+    v = predicted # column vectors, shape = D * V, all v at the same time not just v_c
+    u = outputVectors # row vectors, shape = V * D
+    
+    z = sigmoid(u[target].dot(v))
+    cost = -np.log(z)
+    
+    grad[target] += v * (z - 1.0)
+    gradPred += u[target] * (z - 1.0)
+    
+    #cost -= np.sum(np.log(sigmoid(-neg_z)))    
+    #neg_z = u[indices].dot(v)
+    
+    for k in np.arange(K):        
+        samp = indices[k + 1]
+        z = sigmoid(u[samp].dot(v))
+        cost -= np.log(1.0 - z)
+        grad[samp] += v * z
+        gradPred += u[samp] * z           
+    
     ### END YOUR CODE
 
     return cost, gradPred, grad
@@ -163,8 +195,19 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     gradOut = np.zeros(outputVectors.shape)
 
     ### YOUR CODE HERE
-    # TODO
-#     print('NotImplementedError')
+    
+    cword_idx = tokens[currentWord]
+    vhat = inputVectors[cword_idx]
+
+    for j in contextWords:
+
+        u_idx = tokens[j]
+        c_cost, c_grad_in, c_grad_out = word2vecCostAndGradient(vhat, u_idx, outputVectors, dataset)
+
+        cost += c_cost
+        gradIn[cword_idx] += c_grad_in
+        gradOut += c_grad_out
+
     ### END YOUR CODE
 
     return cost, gradIn, gradOut
@@ -189,7 +232,17 @@ def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
 
     ### YOUR CODE HERE
     # TODO
-#     print('NotImplementedError')
+
+    predicted_indices = [tokens[word] for word in contextWords]
+    predicted_vectors = inputVectors[predicted_indices]
+    predicted = np.sum(predicted_vectors, axis=0)
+    target = tokens[currentWord]
+    
+    cost, gradIn_predicted, gradOut = word2vecCostAndGradient(predicted, target, outputVectors, dataset)
+
+    for i in predicted_indices:
+        gradIn[i] += gradIn_predicted    
+    
     ### END YOUR CODE
 
     return cost, gradIn, gradOut
@@ -216,9 +269,7 @@ def word2vec_sgd_wrapper(word2vecModel, tokens, wordVectors, dataset, C,
         else:
             denom = 1
 
-        c, gin, gout = word2vecModel(
-            centerword, C1, context, tokens, inputVectors, outputVectors,
-            dataset, word2vecCostAndGradient)
+        c, gin, gout = word2vecModel(centerword, C1, context, tokens, inputVectors, outputVectors, dataset, word2vecCostAndGradient)
         cost += c / batchsize / denom
         grad[:N//2, :] += gin / batchsize / denom
         grad[N//2:, :] += gout / batchsize / denom
