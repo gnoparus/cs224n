@@ -40,9 +40,11 @@ def gradcheck_naive(f, x):
         
         params = x.copy()
         params[ix] -= h
+        random.setstate(rndstate)
         fxminus, gradminus = f(params)
         params = x.copy()
         params[ix] += h
+        random.setstate(rndstate)
         fxplus, gradplus = f(params)
         
         numgrad = (fxplus - fxminus) / (2 * h)              
