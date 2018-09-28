@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from utils.general_utils import test_all_close
-
+from pprint import pprint
 
 def softmax(x):
     """
@@ -24,6 +24,13 @@ def softmax(x):
     """
 
     ### YOUR CODE HERE
+
+    maxx = tf.reduce_max(x, axis=1, keepdims=True)
+    x -= maxx
+    ex = tf.exp(x)
+    out = ex / tf.reduce_sum(ex, axis=1, keepdims=True)
+    
+    
     ### END YOUR CODE
 
     return out
@@ -54,6 +61,9 @@ def cross_entropy_loss(y, yhat):
     """
 
     ### YOUR CODE HERE
+        
+    out = -tf.reduce_sum(tf.log(tf.to_float(y) - yhat))
+    
     ### END YOUR CODE
 
     return out
