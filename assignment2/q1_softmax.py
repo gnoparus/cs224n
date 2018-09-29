@@ -29,8 +29,7 @@ def softmax(x):
     x -= maxx
     ex = tf.exp(x)
     out = ex / tf.reduce_sum(ex, axis=1, keepdims=True)
-    
-    
+        
     ### END YOUR CODE
 
     return out
@@ -61,8 +60,10 @@ def cross_entropy_loss(y, yhat):
     """
 
     ### YOUR CODE HERE
-        
-    out = -tf.reduce_sum(tf.log(tf.to_float(y) - yhat))
+    
+    out = -tf.reduce_sum(tf.to_float(y) * tf.log(yhat)) 
+#     out = -tf.reduce_sum(tf.to_float(y) + yhat)
+#     out = tf.Variable(3.14159265359, tf.float64)
     
     ### END YOUR CODE
 
@@ -101,6 +102,8 @@ def test_cross_entropy_loss_basic():
     with tf.Session() as sess:
         test1 = sess.run(test1)
     expected = -3 * np.log(.5)
+
+    pprint(test1)
     test_all_close("Cross-entropy test 1", test1, expected)
 
     print "Basic (non-exhaustive) cross-entropy tests pass"

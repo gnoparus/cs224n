@@ -46,6 +46,11 @@ class SoftmaxModel(Model):
             self.labels_placeholder
         """
         ### YOUR CODE HERE
+        config = self.config
+        
+        self.input_placeholder = tf.placeholder(tf.float32, [config.batch_size, config.n_features], "input_placeholder")
+        self.labels_placeholder = tf.placeholder(tf.int32, [config.batch_size, config.n_classes], "labels_placeholder")     
+                
         ### END YOUR CODE
 
     def create_feed_dict(self, inputs_batch, labels_batch=None):
@@ -69,6 +74,18 @@ class SoftmaxModel(Model):
             feed_dict: The feed dictionary mapping from placeholders to values.
         """
         ### YOUR CODE HERE
+                    
+        feed_dict = {}
+            
+        if (len(labels_batch) == 0):
+            return feed_dict
+        
+        feed_dict = {
+                self.input_placeholder: inputs_batch, 
+                self.labels_placeholder: labels_batch, 
+                }        
+
+        
         ### END YOUR CODE
         return feed_dict
 
@@ -90,6 +107,13 @@ class SoftmaxModel(Model):
             pred: A tensor of shape (batch_size, n_classes)
         """
         ### YOUR CODE HERE
+        config = self.config
+  
+        self.W = tf.get_variable("W", [config.n_features, config.n_classes], dtype=tf.float32, initializer=tf.zeros_initializer)
+        self.b = tf.get_variable("b", [config.n_classes, ], dtype=tf.float32, initializer=tf.zeros_initializer)
+        
+        pred = softmax(tf.matmul(self.input_placeholder, self.W) + self.b)        
+        
         ### END YOUR CODE
         return pred
 
@@ -104,6 +128,9 @@ class SoftmaxModel(Model):
             loss: A 0-d tensor (scalar)
         """
         ### YOUR CODE HERE
+        
+        loss = cross_entropy_loss(self.labels_placeholder, pred)
+        
         ### END YOUR CODE
         return loss
 
@@ -126,7 +153,12 @@ class SoftmaxModel(Model):
         Returns:
             train_op: The Op for training.
         """
-        ### YOUR CODE HERE
+        ### YOUR CODE HERE        
+        config = self.config
+                 
+        optimizer = tf.train.GradientDescentOptimizer(config.lr)
+        train_op = optimizer.minimize(loss)
+           
         ### END YOUR CODE
         return train_op
 
@@ -208,5 +240,5 @@ def test_softmax_model():
     assert losses[-1] < .5
     print "Basic (non-exhaustive) classifier tests pass"
 
-if __name__ == "__main__":
+if __name__ == "__main__":    
     test_softmax_model()
