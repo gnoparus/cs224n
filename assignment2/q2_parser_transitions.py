@@ -21,6 +21,11 @@ class PartialParse(object):
         self.sentence = sentence
 
         ### YOUR CODE HERE
+        
+        self.stack = ["ROOT"]
+        self.buffer = list(sentence)
+        self.dependencies = []
+        
         ### END YOUR CODE
 
     def parse_step(self, transition):
@@ -32,6 +37,19 @@ class PartialParse(object):
                         transition.
         """
         ### YOUR CODE HERE
+        len_stack = len(self.stack)
+        if transition == "S": 
+            self.stack.append(self.buffer.pop(0))            
+        elif transition == "LA": 
+            dependency = (self.stack[len_stack-1], self.stack[len_stack-2])
+            self.dependencies.append(dependency)
+            self.stack.remove(self.stack[len_stack-2])                                                           
+        elif transition == "RA":
+            self.dependencies.append((self.stack[len_stack-2], self.stack[len_stack-1]))
+            self.stack.remove(self.stack[len_stack-1])                                                           
+        else:
+            raise Exception('transition is invalid, '.format(transition))        
+        
         ### END YOUR CODE
 
     def parse(self, transitions):
@@ -66,6 +84,28 @@ def minibatch_parse(sentences, model, batch_size):
     """
 
     ### YOUR CODE HERE
+
+    pp = [PartialParse(sentence) for sentence in sentences]
+    unfinished_pp = pp
+    
+    while (len(unfinished_pp) > 0) :
+        minibatch_pp = unfinished_pp[0:batch_size]
+        
+        while (len(minibatch_pp) > 0):
+            transitions = model.predict(minibatch_pp)
+            
+            for (index, transition) in enumerate(transitions):
+                minibatch_pp[index].parse_step(transition)
+               
+            minibatch_pp = [parse for parse in minibatch_pp if len(parse.stack) > 1 or len(parse.buffer) > 0]
+           
+        unfinished_pp = unfinished_pp[batch_size:]
+       
+    dependencies = []    
+        
+    for t in range(len(sentences)):
+        dependencies.append(pp[t].dependencies)
+       
     ### END YOUR CODE
 
     return dependencies
