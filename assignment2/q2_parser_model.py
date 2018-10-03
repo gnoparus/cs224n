@@ -60,11 +60,11 @@ class ParserModel(Model):
         self.input_placeholder = tf.placeholder(tf.int32, shape=[None, config.n_features], name="input_placeholder")
         self.labels_placeholder = tf.placeholder(tf.float32, shape=[None, config.n_classes], name="labels_placeholder")     
         self.dropout_placeholder = tf.placeholder(tf.float32, shape=(), name="dropout_placeholder")     
-        
+        self.beta_regul = tf.placeholder(tf.float32, shape=(), name="beta_regul_placeholder")
         
         ### END YOUR CODE
 
-    def create_feed_dict(self, inputs_batch, labels_batch=None, dropout=0):
+    def create_feed_dict(self, inputs_batch, labels_batch=None, dropout=0, beta_regul=10e-7):
         """Creates the feed_dict for the dependency parser.
 
         A feed_dict takes the form of:
@@ -90,14 +90,14 @@ class ParserModel(Model):
                             
         feed_dict = {}
             
-        if (len(inputs_batch) <> 0):
+        if (len(inputs_batch) > 0):
             feed_dict[self.input_placeholder] = inputs_batch
             
-        if (len(labels_batch) <> 0):
+        if (not(labels_batch is None) and len(labels_batch) > 0):
             feed_dict[self.labels_placeholder] = labels_batch            
 
         feed_dict[self.dropout_placeholder] = dropout
-        
+        feed_dict[self.beta_regul] = beta_regul
                 
         ### END YOUR CODE
         return feed_dict
@@ -122,10 +122,11 @@ class ParserModel(Model):
         ### YOUR CODE HERE
         config = self.config
         
-        token2vector = tf.get_variable("Emb", dtype=tf.float32, initializer=self.pretrained_embeddings)
+        token2vector = tf.get_variable("t2v", dtype=tf.float32, initializer=self.pretrained_embeddings)        
+        reshaped_input = tf.reshape(self.input_placeholder, [-1])
+        embeddings2d = tf.nn.embedding_lookup(token2vector, reshaped_input)
         
-        embeddings = token2vector[self.input_placeholder]
-        embeddings = tf.reshape(embeddings, [-1, config.n_features * config.embedding_size])
+        embeddings = tf.reshape(embeddings2d, [-1, config.n_features * config.embed_size])
         
         ### END YOUR CODE
         return embeddings
@@ -152,7 +153,31 @@ class ParserModel(Model):
         """
 
         x = self.add_embedding()
+        
         ### YOUR CODE HERE
+        
+        config = self.config
+        xavier_initializer = xavier_weight_init()
+        
+
+        shape = (config.n_features * config.embed_size, config.hidden_size)         
+        self.W = xavier_initializer(shape)
+
+        shape = (config.hidden_size, config.n_classes)         
+        self.U = xavier_initializer(shape)
+
+        self.b1 = tf.zeros([config.hidden_size], tf.float32)
+        self.b2 = tf.zeros([config.n_classes], tf.float32)
+
+        z = tf.matmul(x, self.W) + self.b1
+
+#         h = tf.maximum(0, z)
+        h = tf.nn.relu(z)
+
+        h_drop = tf.nn.dropout(h, 1-self.dropout_placeholder)
+
+        pred = tf.matmul(h_drop, self.U) + self.b2
+        
         ### END YOUR CODE
         return pred
 
@@ -170,6 +195,12 @@ class ParserModel(Model):
             loss: A 0-d tensor (scalar)
         """
         ### YOUR CODE HERE
+        
+        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
+            labels=self.labels_placeholder,
+            logits=pred,
+        ) + (self.beta_regul * tf.nn.l2_loss(self.W)))
+        
         ### END YOUR CODE
         return loss
 
@@ -194,6 +225,12 @@ class ParserModel(Model):
             train_op: The Op for training.
         """
         ### YOUR CODE HERE
+        
+        config = self.config
+                 
+        optimizer = tf.train.AdamOptimizer(learning_rate=config.lr)
+        train_op = optimizer.minimize(loss)                
+        
         ### END YOUR CODE
         return train_op
 
@@ -208,7 +245,8 @@ class ParserModel(Model):
         prog = tf.keras.utils.Progbar(target=n_minibatches)
         for i, (train_x, train_y) in enumerate(minibatches(train_examples, self.config.batch_size)):
             loss = self.train_on_batch(sess, train_x, train_y)
-            prog.update(i + 1, [("train loss", loss)], force=i + 1 == n_minibatches)
+#             prog.update(i + 1, [("train loss", loss)], force=i + 1 == n_minibatches)
+            prog.update(i + 1, [("train loss", loss)])
 
         print "Evaluating on dev set",
         dev_UAS, _ = parser.parse(dev_set)
@@ -277,5 +315,6 @@ def main(debug=True):
 
 
 if __name__ == '__main__':
-    main()
+#     main()
+    main(debug=False)
 

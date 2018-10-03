@@ -29,14 +29,14 @@ def xavier_weight_init():
         s = np.sum(shape)
         epsilon = np.sqrt(6) / s
         
-        out = tf.random_uniform(
+        out = tf.Variable(tf.random_uniform(
             shape,
             minval=-epsilon,
             maxval=epsilon,
             dtype=tf.float32,
             seed=None,
             name=None
-        )
+        ))
 #         sess = tf.InteractiveSession()
 #         print(out.eval())
         
