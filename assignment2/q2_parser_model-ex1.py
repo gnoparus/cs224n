@@ -20,10 +20,10 @@ class Config(object):
     n_classes = 3
     dropout = 0.5  # (p_drop in the handout)
     embed_size = 50
-    hidden_size = 200
+    hidden_size = 300
     batch_size = 1024
-    n_epochs = 10
-    lr = 0.0005
+    n_epochs = 50
+    lr = 0.001
 
 
 class ParserModel(Model):
@@ -159,24 +159,28 @@ class ParserModel(Model):
         config = self.config
         xavier_initializer = xavier_weight_init()
         
-
         shape = (config.n_features * config.embed_size, config.hidden_size)         
         self.W = xavier_initializer(shape)
 
+        shape = (config.hidden_size, config.hidden_size)         
+        self.W2 = xavier_initializer(shape)
+        
         shape = (config.hidden_size, config.n_classes)         
         self.U = xavier_initializer(shape)
 
         self.b1 = tf.zeros([config.hidden_size], tf.float32)
+        self.b12 = tf.zeros([config.hidden_size], tf.float32)
         self.b2 = tf.zeros([config.n_classes], tf.float32)
 
         z = tf.matmul(x, self.W) + self.b1
-
-#         h = tf.maximum(0, z)
         h = tf.nn.relu(z)
-
         h_drop = tf.nn.dropout(h, 1-self.dropout_placeholder)
 
-        pred = tf.matmul(h_drop, self.U) + self.b2
+        z2 = tf.matmul(h_drop, self.W2) + self.b12
+        h2 = tf.nn.relu(z2)
+        h_drop2 = tf.nn.dropout(h2, 1-self.dropout_placeholder)
+        
+        pred = tf.matmul(h_drop2, self.U) + self.b2
         
         ### END YOUR CODE
         return pred
@@ -199,7 +203,7 @@ class ParserModel(Model):
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
             labels=self.labels_placeholder,
             logits=pred,
-        ) + (self.beta_regul * tf.nn.l2_loss(self.W)))
+        ) + (self.beta_regul * (tf.nn.l2_loss(self.W) + tf.nn.l2_loss(self.W2) + tf.nn.l2_loss(self.U))))
         
         ### END YOUR CODE
         return loss
@@ -315,6 +319,6 @@ def main(debug=True):
 
 
 if __name__ == '__main__':
-    main()
-#     main(debug=False)
+#     main()
+    main(debug=False)
 
