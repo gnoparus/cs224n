@@ -120,9 +120,12 @@ class ParserModel(Model):
             embeddings: tf.Tensor of shape (None, n_features*embed_size)
         """
         ### YOUR CODE HERE
+        config = self.config
         
+        token2vector = tf.get_variable("Emb", dtype=tf.float32, initializer=self.pretrained_embeddings)
         
-        
+        embeddings = token2vector[self.input_placeholder]
+        embeddings = tf.reshape(embeddings, [-1, config.n_features * config.embedding_size])
         
         ### END YOUR CODE
         return embeddings
