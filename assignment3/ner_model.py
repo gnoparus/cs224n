@@ -7,7 +7,7 @@ import pdb
 import logging
 
 import tensorflow as tf
-from util import ConfusionMatrix, Progbar, minibatches
+from util import ConfusionMatrix, Progbar, minibatches, get_minibatches
 from data_util import get_chunks
 from model import Model
 from defs import LBLS
@@ -110,9 +110,40 @@ class NERModel(Model):
                         # [features, labels]. This makes expanding tuples into arguments (* operator) handy
 
             ### YOUR CODE HERE (2-3 lines)
+            
+#             print(train_examples[0])
+            for i, inputs_minibatch in enumerate(minibatches(train_examples, self.config.batch_size)):           
+#             for i, inputs_minibatch in enumerate(get_minibatches(train_examples, self.config.batch_size)):           
+#                 input_lists = map(list, zip(*inputs_minibatch))        
+#                 inputs_batch, labels_batch = input_lists
+                
+#                 print("len(inputs_batch)", len(inputs_batch))                
+#                 print("inputs_batch[0]", inputs_batch[0])                
+#                 print("inputs_batch[1]", inputs_batch[1])                
+#                 print("----------------")                
+#                 print("len(labels_batch)", len(labels_batch))
+#                 print("labels_batch[0]", labels_batch[0])
+#                 print("labels_batch[1]", labels_batch[1])
+#                 print("labels_batch[2]", labels_batch[2])
+#                 print("labels_batch[3]", labels_batch[3])
+#                 print("labels_batch[4]", labels_batch[4])
+#                 print("labels_batch[5]", labels_batch[5])
+#                 print("labels_batch[6]", labels_batch[6])
+#                 print("labels_batch[7]", labels_batch[7])
 
+#                 loss = self.train_on_batch(sess, inputs_batch, labels_batch)
+    
+                loss = self.train_on_batch(sess, *inputs_minibatch)
+                prog.update(i + 1, [("train loss", loss)])                        
+            
             ### END YOUR CODE
 
+#             logger.info("Evaluating on training data")
+#             token_cm, entity_scores = self.evaluate(sess, train_examples, train_examples_raw)
+#             logger.debug("Token-level confusion matrix:\n" + token_cm.as_table())
+#             logger.debug("Token-level scores:\n" + token_cm.summary())
+#             logger.info("Entity level P/R/F1: %.2f/%.2f/%.2f", *entity_scores)
+            
             logger.info("Evaluating on development data")
             token_cm, entity_scores = self.evaluate(sess, dev_set, dev_set_raw)
             logger.debug("Token-level confusion matrix:\n" + token_cm.as_table())

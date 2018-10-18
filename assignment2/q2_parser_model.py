@@ -166,8 +166,10 @@ class ParserModel(Model):
         shape = (config.hidden_size, config.n_classes)         
         self.U = xavier_initializer(shape)
 
-        self.b1 = tf.zeros([config.hidden_size], tf.float32)
-        self.b2 = tf.zeros([config.n_classes], tf.float32)
+        shape = (config.hidden_size)         
+        self.b1 = tf.get_variable(name="b1", shape=shape, initializer=tf.zeros_initializer())
+        shape = (config.n_classes)         
+        self.b2 = tf.get_variable(name="b2", shape=shape, initializer=tf.zeros_initializer())
 
         z = tf.matmul(x, self.W) + self.b1
 
