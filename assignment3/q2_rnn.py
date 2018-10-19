@@ -103,7 +103,39 @@ def pad_sequences(data, max_length):
 
     for sentence, labels in data:
         ### YOUR CODE HERE (~4-6 lines)
-        pass
+        print("sentence ", sentence)
+        print("labels ", labels)
+        print("max_length ", max_length)
+        
+        new_sentence = []
+        new_label = []
+        new_mask = []
+        for i in range(max_length):
+            print(i)
+            
+            if i >= len(sentence):
+                print("> append zero word")
+                new_sentence.append(zero_vector)
+                new_label.append(zero_label)
+                new_mask.append(False)
+            else:
+                print("<= append value word")              
+                print("sentence[i] ", sentence[i])
+                print("labels[i] ", labels[i])
+                new_sentence.append(sentence[i])
+                new_label.append(labels[i])
+                new_mask.append(True)
+           
+        print("append sentence to ret")
+        print("new_sentence ", new_sentence)
+        print("new_label ", new_label)
+        print("new_mask ", new_mask)
+        print("------------------------------------")
+        
+        ret.extend([[new_sentence, new_label, new_mask]])
+        
+       
+    print("ret ", ret)
         ### END YOUR CODE ###
     return ret
 
