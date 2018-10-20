@@ -88,7 +88,7 @@ def pad_sequences(data, max_length):
             Manning is amazing" and labels "PER PER O O" would become
             ([[1,9], [2,9], [3,8], [4,8]], [1, 1, 4, 4]). Here "Chris"
             the word has been featurized as "[1, 9]", and "[1, 1, 4, 4]"
-            is the list of labels. 
+            is the list of labels.
         max_length: the desired length for all input/output sequences.
     Returns:
         a new list of data points of the structure (sentence', labels', mask).
@@ -103,40 +103,39 @@ def pad_sequences(data, max_length):
 
     for sentence, labels in data:
         ### YOUR CODE HERE (~4-6 lines)
-        print("sentence ", sentence)
-        print("labels ", labels)
-        print("max_length ", max_length)
+#         print("sentence ", sentence)
+#         print("labels ", labels)
+#         print("max_length ", max_length)
         
         new_sentence = []
         new_label = []
         new_mask = []
         for i in range(max_length):
-            print(i)
+#             print(i)
             
             if i >= len(sentence):
-                print("> append zero word")
+#                 print("> append zero word")
                 new_sentence.append(zero_vector)
                 new_label.append(zero_label)
                 new_mask.append(False)
             else:
-                print("<= append value word")              
-                print("sentence[i] ", sentence[i])
-                print("labels[i] ", labels[i])
+#                 print("<= append value word")              
+#                 print("sentence[i] ", sentence[i])
+#                 print("labels[i] ", labels[i])
                 new_sentence.append(sentence[i])
                 new_label.append(labels[i])
                 new_mask.append(True)
            
-        print("append sentence to ret")
-        print("new_sentence ", new_sentence)
-        print("new_label ", new_label)
-        print("new_mask ", new_mask)
-        print("------------------------------------")
+#         print("append sentence to ret")
+#         print("new_sentence ", new_sentence)
+#         print("new_label ", new_label)
+#         print("new_mask ", new_mask)
+#         print("------------------------------------")
         
-        ret.extend([[new_sentence, new_label, new_mask]])
-        
+        ret.extend([[new_sentence, new_label, new_mask]])        
        
-    print("ret ", ret)
-        ### END YOUR CODE ###
+#     print("ret ", ret)
+    ### END YOUR CODE ###
     return ret
 
 class RNNModel(NERModel):
@@ -173,6 +172,14 @@ class RNNModel(NERModel):
         (Don't change the variable names)
         """
         ### YOUR CODE HERE (~4-6 lines)
+        config = self.config
+        
+        self.input_placeholder = tf.placeholder(tf.int32, shape=[None, self.max_length, config.n_features], name="input_placeholder")
+        self.labels_placeholder = tf.placeholder(tf.int32, shape=[None, self.max_length], name="labels_placeholder")     
+        self.mask_placeholder = tf.placeholder(tf.bool, shape=[None, self.max_length], name="mask_placeholder")   
+        self.dropout_placeholder = tf.placeholder(tf.float32, shape=(), name="dropout_placeholder")    
+        
+#         self.beta_regul = tf.placeholder(tf.float32, shape=(), name="beta_regul_placeholder")        
         ### END YOUR CODE
 
     def create_feed_dict(self, inputs_batch, mask_batch, labels_batch=None, dropout=1):
@@ -198,6 +205,13 @@ class RNNModel(NERModel):
             feed_dict: The feed dictionary mapping from placeholders to values.
         """
         ### YOUR CODE (~6-10 lines)
+        feed_dict = {
+            self.input_placeholder: inputs_batch,
+            self.mask_placeholder: mask_batch,
+            self.dropout_placeholder: dropout
+        }
+        if labels_batch is not None:
+            feed_dict[self.labels_placeholder] = labels_batch
         ### END YOUR CODE
         return feed_dict
 
@@ -222,6 +236,13 @@ class RNNModel(NERModel):
             embeddings: tf.Tensor of shape (None, max_length, n_features*embed_size)
         """
         ### YOUR CODE HERE (~4-6 lines)
+        config = self.config
+        
+        token2vector = tf.get_variable("t2v", dtype=tf.float32, initializer=self.pretrained_embeddings)        
+        reshaped_input = tf.reshape(self.input_placeholder, [-1])
+        embeddings2d = tf.nn.embedding_lookup(token2vector, reshaped_input)
+        
+        embeddings = tf.reshape(embeddings2d, [-1, self.max_length, config.n_features * config.embed_size])        
         ### END YOUR CODE
         return embeddings
 
@@ -238,23 +259,23 @@ class RNNModel(NERModel):
             - Define the vector h as a constant and inititalize it with
               zeros. See tf.zeros and tf.shape for information on how
               to initialize this variable to be of the right shape.
-              https://www.tensorflow.org/api_docs/python/tf/zeros
-              https://www.tensorflow.org/api_docs/python/tf/shape
+              https://www.tensorflow.org/api_docs/python/constant_op/constant_value_tensors#zeros
+              https://www.tensorflow.org/api_docs/python/array_ops/shapes_and_shaping#shape
             - In a for loop, begin to unroll the RNN sequence. Collect
               the predictions in a list.
             - When unrolling the loop, from the second iteration
               onwards, you will HAVE to call
               tf.get_variable_scope().reuse_variables() so that you do
               not create new variables in the RNN cell.
-              See https://www.tensorflow.org/api_guides/python/state_ops#Sharing_Variables
+              See https://www.tensorflow.org/versions/master/how_tos/variable_scope/
             - Concatenate and reshape the predictions into a predictions
               tensor.
-        Hint: You will find the function tf.stack (similar to np.asarray)
+        Hint: You will find the function tf.pack (similar to np.asarray)
               useful to assemble a list of tensors into a larger tensor.
-              https://www.tensorflow.org/api_docs/python/tf/stack
+              https://www.tensorflow.org/api_docs/python/array_ops/slicing_and_joining#pack
         Hint: You will find the function tf.transpose and the perms
               argument useful to shuffle the indices of the tensor.
-              https://www.tensorflow.org/api_docs/python/tf/transpose
+              https://www.tensorflow.org/api_docs/python/array_ops/slicing_and_joining#transpose
 
         Remember:
             * Use the xavier initilization for matrices.
@@ -283,16 +304,34 @@ class RNNModel(NERModel):
         # Define U and b2 as variables.
         # Initialize state as vector of zeros.
         ### YOUR CODE HERE (~4-6 lines)
+        config = self.config
+        
+        U = tf.get_variable("U", [config.hidden_size, config.n_classes], dtype=tf.float32, initializer=tf.contrib.layers.xavier_initializer())
+        b2 = tf.get_variable("b2", [config.n_classes], dtype=tf.float32, initializer=tf.zeros_initializer)           
+
+        state = tf.zeros([tf.shape(x)[0], config.hidden_size])
         ### END YOUR CODE
 
         with tf.variable_scope("RNN"):
             for time_step in range(self.max_length):
                 ### YOUR CODE HERE (~6-10 lines)
-                pass
+                
+                if time_step > 0:
+                    tf.get_variable_scope().reuse_variables()
+                    
+                o_t, state = cell(x[:,time_step,:], state, scope="rnn")
+                o_drop_t =  tf.nn.dropout(o_t, dropout_rate)
+                z = tf.matmul(o_drop_t, U) + b2
+                preds.append(z)               
+                
                 ### END YOUR CODE
 
         # Make sure to reshape @preds here.
         ### YOUR CODE HERE (~2-4 lines)
+#         print("preds ", preds)
+        preds = tf.stack(preds, axis=1)
+#         preds = tf.reshape(preds, [-1, self.max_length, self.config.n_classes])
+#         print("preds ", preds)
         ### END YOUR CODE
 
         assert preds.get_shape().as_list() == [None, self.max_length, self.config.n_classes], "predictions are not of the right shape. Expected {}, got {}".format([None, self.max_length, self.config.n_classes], preds.get_shape().as_list())
@@ -314,6 +353,13 @@ class RNNModel(NERModel):
             loss: A 0-d tensor (scalar)
         """
         ### YOUR CODE HERE (~2-4 lines)
+        masked_labels = tf.boolean_mask(self.labels_placeholder, self.mask_placeholder)
+        masked_preds = tf.boolean_mask(preds, self.mask_placeholder)
+        
+        loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(
+            labels=masked_labels,
+            logits=masked_preds,
+        ))        
         ### END YOUR CODE
         return loss
 
@@ -337,6 +383,10 @@ class RNNModel(NERModel):
             train_op: The Op for training.
         """
         ### YOUR CODE HERE (~1-2 lines)
+        config = self.config
+                 
+        optimizer = tf.train.AdamOptimizer(learning_rate=config.lr)
+        train_op = optimizer.minimize(loss)                        
         ### END YOUR CODE
         return train_op
 
@@ -400,11 +450,11 @@ def test_pad_sequences():
     data = [
         ([[4,1], [6,0], [7,0]], [1, 0, 0]),
         ([[3,0], [3,4], [4,5], [5,3], [3,4]], [0, 1, 0, 2, 3]),
-        ]
+    ]
     ret = [
         ([[4,1], [6,0], [7,0], [0,0]], [1, 0, 0, 4], [True, True, True, False]),
         ([[3,0], [3,4], [4,5], [5,3]], [0, 1, 0, 2], [True, True, True, True])
-        ]
+    ]
 
     ret_ = pad_sequences(data, 4)
     assert len(ret_) == 2, "Did not process all examples: expected {} results, but got {}.".format(2, len(ret_))

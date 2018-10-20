@@ -220,7 +220,8 @@ class WindowModel(NERModel):
         reshaped_input = tf.reshape(self.input_placeholder, [-1])
         embeddings2d = tf.nn.embedding_lookup(token2vector, reshaped_input)
         
-        embeddings = tf.reshape(embeddings2d, [-1, config.n_window_features * config.embed_size])                         ### END YOUR CODE
+        embeddings = tf.reshape(embeddings2d, [-1, config.n_window_features * config.embed_size])                         
+        ### END YOUR CODE
         return embeddings
 
     def add_prediction_op(self):
